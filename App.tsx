@@ -1,20 +1,78 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+// App.tsx
 
-export default function App() {
+import React, { useEffect } from 'react';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
+
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { RootStackParamList } from './src/types';
+import HomeScreen from './src/screens/HomeScreen';
+import AddEntryScreen from './src/screens/AddEntryScreen';
+import { registerForNotificationsAsync } from './src/notifications/notificationService';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Must be called at module level (outside component)
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+function AppNavigator() {
+  const { mode, colors } = useTheme();
+
+  const navTheme = {
+    ...(mode === 'dark' ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(mode === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+      background: colors.background,
+      card: colors.card,
+      text: colors.text,
+      border: colors.border,
+      primary: colors.primary,
+      notification: colors.primary,
+    },
+  };
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer theme={navTheme}>
+      <Stack.Navigator
+        initialRouteName="Home"
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="AddEntry" component={AddEntryScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default function App() {
+  useEffect(() => {
+    // Request notification permissions on mount
+    registerForNotificationsAsync();
+
+    // Handle notification interactions (e.g. tapping a notification)
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        console.log('[App] Notification tapped:', response);
+      }
+    );
+
+    return () => subscription.remove();
+  }, []);
+
+  return (
+    <ThemeProvider>
+      <AppNavigator />
+    </ThemeProvider>
+  );
+}
