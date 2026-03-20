@@ -43,15 +43,15 @@ function AppNavigator() {
 
   return (
     <NavigationContainer theme={navTheme}>
-      <Stack.Navigator
-        initialRouteName="Home"
-        screenOptions={{
-          headerShown: false,
-          animation: 'slide_from_right',
-        }}
-      >
-        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="AddEntry" component={AddEntryScreen} />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen 
+              name="Home" 
+              component={HomeScreen} 
+            />
+            <Stack.Screen 
+              name="AddEntry" 
+              component={AddEntryScreen} 
+            />
       </Stack.Navigator>
     </NavigationContainer>
   );

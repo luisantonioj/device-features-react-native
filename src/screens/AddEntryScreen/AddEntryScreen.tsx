@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -25,6 +25,7 @@ const generateId = (): string => {
 const AddEntryScreen: React.FC = () => {
   const navigation = useNavigation<AddEntryNavProp>();
   const { colors, mode } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [address, setAddress] = useState<string>('');
@@ -101,8 +102,17 @@ const AddEntryScreen: React.FC = () => {
   const canSave = !!imageUri && !!address && latitude !== null && longitude !== null;
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom', 'left', 'right']}>
-      <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      <View 
+            style={[
+              styles.safeArea, 
+              { 
+                backgroundColor: colors.background,
+                paddingTop: insets.top,
+                paddingBottom: insets.bottom
+              }
+            ]}
+        >
+        <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -180,7 +190,7 @@ const AddEntryScreen: React.FC = () => {
         </TouchableOpacity>
 
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

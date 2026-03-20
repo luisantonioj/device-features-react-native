@@ -2,9 +2,8 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, StatusBar } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-
 import { TravelEntry, RootStackParamList } from '../../types';
 import { loadEntries, removeEntry } from '../../storage/entriesStorage';
 import { useTheme } from '../../context/ThemeContext';
@@ -17,7 +16,7 @@ type HomeScreenNavProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavProp>();
   const { colors, mode } = useTheme();
-
+  const insets = useSafeAreaInsets(); 
   const [entries, setEntries] = useState<TravelEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +66,16 @@ const HomeScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom', 'left', 'right']}>
+    <View 
+      style={[
+        styles.safeArea, 
+        { 
+          backgroundColor: colors.background,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom
+        }
+      ]} 
+    >
       <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
       <View style={[styles.header, { borderBottomColor: mode === 'dark' ? '#333' : '#E5E5E5' }]}>
@@ -103,7 +111,14 @@ const HomeScreen: React.FC = () => {
       )}
 
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
+        style={[
+          styles.fab, 
+          { 
+            backgroundColor: colors.primary, 
+            shadowColor: colors.primary,
+            bottom: insets.bottom + 20
+          }
+        ]}
         onPress={() => navigation.navigate('AddEntry')}
         activeOpacity={0.8}
       >
@@ -112,7 +127,7 @@ const HomeScreen: React.FC = () => {
           <Text style={styles.fabText}>Add Entry</Text>
         </View>
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 };
 

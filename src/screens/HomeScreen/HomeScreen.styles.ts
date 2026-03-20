@@ -69,7 +69,6 @@ export const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 40 : 30,
     alignSelf: 'center',
     paddingHorizontal: 32,
     paddingVertical: 16,
