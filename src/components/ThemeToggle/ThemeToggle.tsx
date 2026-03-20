@@ -19,7 +19,7 @@ const ThemeToggle: React.FC = () => {
       <Ionicons 
         name={mode === 'light' ? 'moon' : 'sunny'} 
         size={24} 
-        color={mode === 'light' ? '#4A4A4A' : '#FFD700'} 
+        color={mode === 'light' ? '#4A4A4A' : '#F5F7F8'} 
       />
     </TouchableOpacity>
   );
