@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Platform } from 'react-native';
+import { Platform, LogBox } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -12,6 +12,11 @@ import HomeScreen from './src/screens/HomeScreen/HomeScreen';
 import AddEntryScreen from './src/screens/AddEntryScreen/AddEntryScreen';
 import { registerForNotificationsAsync } from './src/notifications/notificationService';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications',
+  '`expo-notifications` functionality is not fully supported in Expo Go',
+]);
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
