@@ -16,6 +16,13 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+  headerCenter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',

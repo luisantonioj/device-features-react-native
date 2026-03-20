@@ -140,7 +140,11 @@ const AddEntryScreen: React.FC = () => {
           <Ionicons name="chevron-back" size={24} color={colors.primary} />
           <Text style={[styles.backBtnText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>New Memory</Text>
+
+        <View style={styles.headerCenter} pointerEvents="none">
+          <Text style={[styles.headerTitle, { color: colors.text }]}>New Memory</Text>
+        </View>
+
         <ThemeToggle />
       </View>
 
