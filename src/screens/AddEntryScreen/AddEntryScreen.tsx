@@ -206,7 +206,14 @@ const AddEntryScreen: React.FC = () => {
         >
           <View style={styles.saveBtnRow}>
             {canSave && <Ionicons name="checkmark-circle-outline" size={20} color="#fff" style={{ marginRight: 8 }} />}
-            <Text style={styles.saveBtnText}>{canSave ? 'Review & Save' : 'Complete Steps Above to Save'}</Text>
+            <Text 
+              style={[
+                styles.saveBtnText, 
+                { color: canSave ? '#F5F7F8' : colors.text } 
+              ]}
+            >
+              {canSave ? 'Review & Save' : 'Complete Steps Above to Save'}
+            </Text>
           </View>
         </TouchableOpacity>
 
