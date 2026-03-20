@@ -11,6 +11,7 @@ import { RootStackParamList } from './src/types';
 import HomeScreen from './src/screens/HomeScreen';
 import AddEntryScreen from './src/screens/AddEntryScreen';
 import { registerForNotificationsAsync } from './src/notifications/notificationService';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -49,7 +50,7 @@ function AppNavigator() {
           animation: 'slide_from_right',
         }}
       >
-        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
         <Stack.Screen name="AddEntry" component={AddEntryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
@@ -72,8 +73,10 @@ export default function App() {
   }, []);
 
   return (
-    <ThemeProvider>
-      <AppNavigator />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppNavigator />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

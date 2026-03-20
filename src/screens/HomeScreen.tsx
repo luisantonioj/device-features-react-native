@@ -1,5 +1,3 @@
-// src/screens/HomeScreen.tsx
-
 import React, { useState, useCallback } from 'react';
 import {
   View,
@@ -9,17 +7,19 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TravelEntry, RootStackParamList } from '../types';
 import { loadEntries, removeEntry } from '../storage/entriesStorage';
 import { useTheme } from '../context/ThemeContext';
 import EntryItem from '../components/EntryItem';
 import ThemeToggle from '../components/ThemeToggle';
+import { Ionicons } from '@expo/vector-icons';
 
 type HomeScreenNavProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -31,7 +31,6 @@ const HomeScreen: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Reload entries every time this screen is focused
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -44,7 +43,6 @@ const HomeScreen: React.FC = () => {
           if (active) setEntries(data);
         } catch (e) {
           if (active) setError('Failed to load entries. Please try again.');
-          console.error('[HomeScreen] Error loading entries:', e);
         } finally {
           if (active) setLoading(false);
         }
@@ -58,10 +56,7 @@ const HomeScreen: React.FC = () => {
   );
 
   const handleRemove = async (id: string) => {
-    if (!id) {
-      Alert.alert('Error', 'Invalid entry. Please try again.');
-      return;
-    }
+    if (!id) return;
     const success = await removeEntry(id);
     if (success) {
       setEntries((prev) => prev.filter((e) => e.id !== id));
@@ -70,19 +65,15 @@ const HomeScreen: React.FC = () => {
     }
   };
 
-  const renderItem = ({ item }: { item: TravelEntry }) => (
-    <EntryItem entry={item} onRemove={handleRemove} />
-  );
-
   const renderEmpty = () => {
     if (loading) return null;
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>🗺️</Text>
+        <Ionicons name="map-outline" size={80} color={colors.primary} style={{ opacity: 0.5, marginBottom: 16 }} />
         <Text style={[styles.emptyTitle, { color: colors.text }]}>
           No Entries Yet
         </Text>
-        <Text style={[styles.emptySubtitle, { color: colors.subText }]}>
+        <Text style={[styles.emptySubtitle, { color: colors.text, opacity: 0.6 }]}>
           Start your travel diary by tapping the button below.
         </Text>
       </View>
@@ -90,45 +81,46 @@ const HomeScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+    <SafeAreaView 
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom', 'left', 'right']} 
+    >
       <StatusBar
         barStyle={mode === 'dark' ? 'light-content' : 'dark-content'}
         backgroundColor={colors.background}
       />
-
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      
+      {/* Custom Modern Header */}
+      <View style={[styles.header, { borderBottomColor: mode === 'dark' ? '#333' : '#E5E5E5' }]}>
         <View>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
             Travel Diary
           </Text>
-          <Text style={[styles.headerSubtitle, { color: colors.subText }]}>
+          <Text style={[styles.headerSubtitle, { color: colors.text, opacity: 0.6 }]}>
             {entries.length} {entries.length === 1 ? 'memory' : 'memories'}
           </Text>
         </View>
         <ThemeToggle />
       </View>
 
-      {/* Error banner */}
       {error && (
-        <View style={[styles.errorBanner, { backgroundColor: colors.danger }]}>
+        <View style={[styles.errorBanner, { backgroundColor: '#FFE5E5' }]}>
           <Text style={styles.errorBannerText}>{error}</Text>
         </View>
       )}
 
-      {/* Loading */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.subText }]}>
-            Loading entries...
+          <Text style={[styles.loadingText, { color: colors.text, opacity: 0.6 }]}>
+            Loading memories...
           </Text>
         </View>
       ) : (
         <FlatList
           data={entries}
           keyExtractor={(item) => item.id}
-          renderItem={renderItem}
+          renderItem={({ item }) => <EntryItem entry={item} onRemove={handleRemove} />}
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={
             entries.length === 0 ? styles.flatListEmpty : styles.flatListContent
@@ -137,14 +129,22 @@ const HomeScreen: React.FC = () => {
         />
       )}
 
-      {/* FAB Add Button */}
+      {/* Floating Action Button (FAB) */}
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary }]}
+        style={[
+          styles.fab, 
+          { 
+            backgroundColor: colors.primary,
+            shadowColor: colors.primary
+          }
+        ]}
         onPress={() => navigation.navigate('AddEntry')}
-        accessibilityRole="button"
-        accessibilityLabel="Add a new travel entry"
+        activeOpacity={0.8}
       >
-        <Text style={styles.fabText}>＋ Add Entry</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Ionicons name="add" size={24} color="#fff" />
+          <Text style={styles.fabText}>Add Entry</Text>
+        </View>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -158,26 +158,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 16,
     borderBottomWidth: 1,
   },
   headerTitle: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: 14,
+    marginTop: 4,
+    fontWeight: '500',
   },
   errorBanner: {
-    margin: 12,
+    margin: 16,
     padding: 12,
     borderRadius: 10,
   },
   errorBannerText: {
-    color: '#fff',
+    color: '#D93025',
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -188,11 +189,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '500',
   },
   flatListContent: {
-    paddingTop: 8,
-    paddingBottom: 100,
+    paddingTop: 16,
+    paddingBottom: 120, // Prevents the last item from hiding behind the FAB
+    paddingHorizontal: 16,
   },
   flatListEmpty: {
     flex: 1,
@@ -202,39 +205,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 40,
-    gap: 10,
   },
   emptyIcon: {
-    fontSize: 64,
-    marginBottom: 8,
+    fontSize: 72, // Made slightly larger for better empty-state visual
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     textAlign: 'center',
+    marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
   },
   fab: {
     position: 'absolute',
-    bottom: 28,
+    bottom: Platform.OS === 'ios' ? 40 : 30, // Adjusts safely for Android nav bars
     alignSelf: 'center',
-    paddingHorizontal: 28,
-    paddingVertical: 15,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
     borderRadius: 30,
-    elevation: 6,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
+    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
     shadowRadius: 8,
   },
   fabText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
 });
 

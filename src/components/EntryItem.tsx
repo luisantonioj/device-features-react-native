@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // <-- Import the icons
 import { TravelEntry } from '../types';
 import { useTheme } from '../context/ThemeContext';
 
@@ -30,7 +31,7 @@ const EntryItem: React.FC<EntryItemProps> = ({ entry, onRemove }) => {
 
   const handleRemove = () => {
     Alert.alert(
-      'Remove Entry',
+      'Remove Memory',
       'Are you sure you want to delete this travel entry?',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -55,17 +56,29 @@ const EntryItem: React.FC<EntryItemProps> = ({ entry, onRemove }) => {
       ]}
     >
       {/* Photo */}
-      <Image
-        source={{ uri: entry.imageUri }}
-        style={styles.image}
-        resizeMode="cover"
-        accessibilityLabel={`Travel photo at ${entry.address}`}
-      />
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: entry.imageUri }}
+          style={styles.image}
+          resizeMode="cover"
+          accessibilityLabel={`Travel photo at ${entry.address}`}
+        />
+        
+        {/* Absolute Positioned Trash Icon */}
+        <TouchableOpacity
+          style={styles.trashIconBtn}
+          onPress={handleRemove}
+          accessibilityRole="button"
+          accessibilityLabel="Remove this travel entry"
+        >
+          <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
 
       {/* Info */}
       <View style={styles.info}>
         <View style={styles.addressRow}>
-          <Text style={styles.pinIcon}>📍</Text>
+          <Ionicons name="location" size={18} color={colors.primary} style={styles.pinIcon} />
           <Text
             style={[styles.address, { color: colors.text }]}
             numberOfLines={2}
@@ -77,16 +90,6 @@ const EntryItem: React.FC<EntryItemProps> = ({ entry, onRemove }) => {
           {formattedDate}
         </Text>
       </View>
-
-      {/* Remove Button */}
-      <TouchableOpacity
-        style={[styles.removeBtn, { backgroundColor: colors.danger }]}
-        onPress={handleRemove}
-        accessibilityRole="button"
-        accessibilityLabel="Remove this travel entry"
-      >
-        <Text style={styles.removeBtnText}>✕ Remove</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -95,53 +98,56 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     marginHorizontal: 16,
-    marginVertical: 8,
+    marginVertical: 10, // Slightly increased spacing between cards
     overflow: 'hidden',
     borderWidth: 1,
     elevation: 3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 }, // Softened the shadow
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+  },
+  imageContainer: {
+    position: 'relative', // Allows absolute positioning inside
   },
   image: {
     width: '100%',
-    height: 200,
+    height: 220, // Slightly taller for a more immersive feel
+  },
+  trashIconBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Dark, semi-transparent circle so it pops on any photo
+    width: 36,
+    height: 36,
+    borderRadius: 18, // Perfect circle
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Optional: add a subtle backdrop blur effect for iOS
   },
   info: {
-    padding: 12,
+    padding: 16, // Increased padding for breathing room
   },
   addressRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   pinIcon: {
-    fontSize: 14,
     marginRight: 4,
-    marginTop: 1,
+    marginTop: 2,
   },
   address: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     flex: 1,
-    lineHeight: 21,
+    lineHeight: 22,
   },
   date: {
-    fontSize: 12,
-    marginTop: 4,
-    marginLeft: 18,
-  },
-  removeBtn: {
-    margin: 12,
-    marginTop: 0,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  removeBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
+    marginTop: 2,
+    marginLeft: 22, // Aligned perfectly with the text above
+    fontWeight: '500',
   },
 });
 
