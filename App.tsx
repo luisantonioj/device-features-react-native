@@ -17,7 +17,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // Must be called at module level (outside component)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
