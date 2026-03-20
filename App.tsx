@@ -8,8 +8,8 @@ import * as Notifications from 'expo-notifications';
 
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { RootStackParamList } from './src/types';
-import HomeScreen from './src/screens/HomeScreen';
-import AddEntryScreen from './src/screens/AddEntryScreen';
+import HomeScreen from './src/screens/HomeScreen/HomeScreen';
+import AddEntryScreen from './src/screens/AddEntryScreen/AddEntryScreen';
 import { registerForNotificationsAsync } from './src/notifications/notificationService';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
