@@ -10,14 +10,15 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   StatusBar,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons'; // <-- Added Ionicons
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -29,7 +30,6 @@ import ThemeToggle from '../components/ThemeToggle';
 
 type AddEntryNavProp = NativeStackNavigationProp<RootStackParamList, 'AddEntry'>;
 
-// Simple UUID fallback if react-native-get-random-values isn't available
 const generateId = (): string => {
   try {
     return uuidv4();
@@ -51,7 +51,6 @@ const AddEntryScreen: React.FC = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  // Clear form state whenever screen comes into focus (handles back-navigation reset)
   useFocusEffect(
     useCallback(() => {
       resetForm();
@@ -68,8 +67,6 @@ const AddEntryScreen: React.FC = () => {
     setLocationError(null);
     setCameraError(null);
   };
-
-  // ─── Camera ────────────────────────────────────────────────────────────────
 
   const requestCameraPermission = async (): Promise<boolean> => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -106,16 +103,11 @@ const AddEntryScreen: React.FC = () => {
       }
 
       setImageUri(asset.uri);
-
-      // Automatically fetch location after taking the photo
       await fetchCurrentLocation();
     } catch (error) {
-      console.error('[AddEntry] Camera error:', error);
       setCameraError('An error occurred while accessing the camera.');
     }
   };
-
-  // ─── Location ──────────────────────────────────────────────────────────────
 
   const requestLocationPermission = async (): Promise<boolean> => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -142,7 +134,6 @@ const AddEntryScreen: React.FC = () => {
         return;
       }
 
-      // Get current GPS position
       const locationData = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
@@ -156,7 +147,6 @@ const AddEntryScreen: React.FC = () => {
       setLatitude(lat);
       setLongitude(lng);
 
-      // Reverse geocode to get human-readable address
       const geocoded = await Location.reverseGeocodeAsync({
         latitude: lat,
         longitude: lng,
@@ -179,14 +169,11 @@ const AddEntryScreen: React.FC = () => {
 
       setAddress(parts.length > 0 ? parts.join(', ') : `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     } catch (error) {
-      console.error('[AddEntry] Location error:', error);
       setLocationError('Failed to retrieve location. Please try again.');
     } finally {
       setIsFetchingLocation(false);
     }
   };
-
-  // ─── Validation ────────────────────────────────────────────────────────────
 
   const validateEntry = (): string | null => {
     if (!imageUri) return 'Please take a photo before saving.';
@@ -194,8 +181,6 @@ const AddEntryScreen: React.FC = () => {
     if (latitude === null || longitude === null) return 'Location coordinates are missing.';
     return null;
   };
-
-  // ─── Save ──────────────────────────────────────────────────────────────────
 
   const handleSave = async () => {
     const validationError = validateEntry();
@@ -223,7 +208,6 @@ const AddEntryScreen: React.FC = () => {
         return;
       }
 
-      // Send local push notification
       await sendEntrySavedNotification(address.trim());
 
       Alert.alert('Saved! 🎉', 'Your travel entry has been saved.', [
@@ -233,7 +217,6 @@ const AddEntryScreen: React.FC = () => {
         },
       ]);
     } catch (error) {
-      console.error('[AddEntry] Save error:', error);
       Alert.alert('Error', 'An unexpected error occurred while saving.');
     } finally {
       setIsSaving(false);
@@ -243,13 +226,13 @@ const AddEntryScreen: React.FC = () => {
   const canSave = !!imageUri && !!address && latitude !== null && longitude !== null;
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom', 'left', 'right']}>
       <StatusBar
         barStyle={mode === 'dark' ? 'light-content' : 'dark-content'}
         backgroundColor={colors.background}
       />
 
-      {/* Header */}
+      {/* Custom Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -257,9 +240,10 @@ const AddEntryScreen: React.FC = () => {
           accessibilityLabel="Go back"
           style={styles.backBtn}
         >
-          <Text style={[styles.backBtnText, { color: colors.primary }]}>← Back</Text>
+          <Ionicons name="chevron-back" size={24} color={colors.primary} />
+          <Text style={[styles.backBtnText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>New Entry</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>New Memory</Text>
         <ThemeToggle />
       </View>
 
@@ -270,7 +254,10 @@ const AddEntryScreen: React.FC = () => {
       >
         {/* Camera Section */}
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>📷 Photo</Text>
+          <View style={styles.titleRow}>
+            <Ionicons name="camera-outline" size={20} color={colors.text} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Photo</Text>
+          </View>
 
           {cameraError && (
             <Text style={[styles.errorText, { color: colors.danger }]}>{cameraError}</Text>
@@ -282,11 +269,10 @@ const AddEntryScreen: React.FC = () => {
               <TouchableOpacity
                 style={[styles.secondaryBtn, { borderColor: colors.primary }]}
                 onPress={takePicture}
-                accessibilityRole="button"
-                accessibilityLabel="Retake photo"
               >
+                <Ionicons name="refresh-outline" size={18} color={colors.primary} style={{ marginRight: 6 }} />
                 <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>
-                  🔄 Retake Photo
+                  Retake Photo
                 </Text>
               </TouchableOpacity>
             </View>
@@ -294,10 +280,8 @@ const AddEntryScreen: React.FC = () => {
             <TouchableOpacity
               style={[styles.cameraPlaceholder, { borderColor: colors.border, backgroundColor: colors.inputBackground }]}
               onPress={takePicture}
-              accessibilityRole="button"
-              accessibilityLabel="Take a photo"
             >
-              <Text style={styles.cameraPlaceholderIcon}>📸</Text>
+              <Ionicons name="camera" size={48} color={colors.subText} style={{ opacity: 0.5 }} />
               <Text style={[styles.cameraPlaceholderText, { color: colors.subText }]}>
                 Tap to take a photo
               </Text>
@@ -307,7 +291,10 @@ const AddEntryScreen: React.FC = () => {
 
         {/* Location Section */}
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>📍 Location</Text>
+          <View style={styles.titleRow}>
+            <Ionicons name="location-outline" size={20} color={colors.text} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Location</Text>
+          </View>
 
           {locationError && (
             <Text style={[styles.errorText, { color: colors.danger }]}>{locationError}</Text>
@@ -328,11 +315,10 @@ const AddEntryScreen: React.FC = () => {
               <TouchableOpacity
                 style={[styles.secondaryBtn, { borderColor: colors.primary }]}
                 onPress={fetchCurrentLocation}
-                accessibilityRole="button"
-                accessibilityLabel="Refresh location"
               >
+                <Ionicons name="refresh-outline" size={18} color={colors.primary} style={{ marginRight: 6 }} />
                 <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>
-                  🔄 Refresh Location
+                  Refresh Location
                 </Text>
               </TouchableOpacity>
             </View>
@@ -346,7 +332,6 @@ const AddEntryScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Coordinates display */}
           {latitude !== null && longitude !== null && (
             <Text style={[styles.coordText, { color: colors.subText }]}>
               {latitude.toFixed(5)}, {longitude.toFixed(5)}
@@ -365,15 +350,16 @@ const AddEntryScreen: React.FC = () => {
           ]}
           onPress={handleSave}
           disabled={isSaving || !canSave}
-          accessibilityRole="button"
-          accessibilityLabel="Save travel entry"
         >
           {isSaving ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.saveBtnText}>
-              {canSave ? '💾 Save Entry' : 'Complete Steps Above to Save'}
-            </Text>
+            <View style={styles.saveBtnRow}>
+              {canSave && <Ionicons name="checkmark-circle-outline" size={20} color="#fff" style={{ marginRight: 8 }} />}
+              <Text style={styles.saveBtnText}>
+                {canSave ? 'Save Entry' : 'Complete Steps Above to Save'}
+              </Text>
+            </View>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -398,10 +384,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 4,
+    width: 80, // Giving fixed width ensures the title stays roughly centered
   },
   backBtnText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
   },
   scrollContent: {
@@ -415,10 +404,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 12,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 6,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 4,
   },
   errorText: {
     fontSize: 13,
@@ -431,10 +425,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-  },
-  cameraPlaceholderIcon: {
-    fontSize: 40,
+    gap: 12,
   },
   cameraPlaceholderText: {
     fontSize: 14,
@@ -447,10 +438,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   secondaryBtn: {
+    flexDirection: 'row',
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1.5,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   secondaryBtnText: {
     fontSize: 14,
@@ -491,6 +484,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     marginTop: 4,
+  },
+  saveBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   saveBtnText: {
     color: '#fff',

@@ -1,7 +1,8 @@
 // src/components/ThemeToggle.tsx
 
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
 const ThemeToggle: React.FC = () => {
@@ -17,7 +18,11 @@ const ThemeToggle: React.FC = () => {
       accessibilityRole="button"
       accessibilityLabel={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`}
     >
-      <Text style={styles.icon}>{mode === 'light' ? '🌙' : '☀️'}</Text>
+      <Ionicons 
+        name={mode === 'light' ? 'moon' : 'sunny'} 
+        size={18} 
+        color={mode === 'light' ? '#4A4A4A' : '#FFD700'} 
+      />
     </TouchableOpacity>
   );
 };
@@ -31,9 +36,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
-  },
-  icon: {
-    fontSize: 18,
   },
 });
 
