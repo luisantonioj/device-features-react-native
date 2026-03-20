@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StatusBar, Modal } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+
 import { TravelEntry, RootStackParamList } from '../../types';
 import { loadEntries, removeEntry } from '../../storage/entriesStorage';
 import { useTheme } from '../../context/ThemeContext';
@@ -16,17 +17,20 @@ type HomeScreenNavProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavProp>();
   const { colors, mode } = useTheme();
-  const insets = useSafeAreaInsets(); 
+  const insets = useSafeAreaInsets();
+
   const [entries, setEntries] = useState<TravelEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // New state for modern delete modal
+  const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       const fetchEntries = async () => {
-        setLoading(true);
-        setError(null);
+        setLoading(true); setError(null);
         try {
           const data = await loadEntries();
           if (active) setEntries(data);
@@ -36,20 +40,20 @@ const HomeScreen: React.FC = () => {
           if (active) setLoading(false);
         }
       };
-
       fetchEntries();
       return () => { active = false; };
     }, [])
   );
 
-  const handleRemove = async (id: string) => {
-    if (!id) return;
-    const success = await removeEntry(id);
+  const confirmDelete = async () => {
+    if (!entryToDelete) return;
+    const success = await removeEntry(entryToDelete);
     if (success) {
-      setEntries((prev) => prev.filter((e) => e.id !== id));
+      setEntries((prev) => prev.filter((e) => e.id !== entryToDelete));
     } else {
-      Alert.alert('Error', 'Failed to remove entry. Please try again.');
+      setError('Failed to remove entry. Please try again.');
     }
+    setEntryToDelete(null); // Close modal
   };
 
   const renderEmpty = () => {
@@ -66,16 +70,7 @@ const HomeScreen: React.FC = () => {
   };
 
   return (
-    <View 
-      style={[
-        styles.safeArea, 
-        { 
-          backgroundColor: colors.background,
-          paddingTop: insets.top,
-          paddingBottom: insets.bottom
-        }
-      ]} 
-    >
+    <View style={[styles.safeArea, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
       <View style={[styles.header, { borderBottomColor: mode === 'dark' ? '#333' : '#E5E5E5' }]}>
@@ -103,7 +98,7 @@ const HomeScreen: React.FC = () => {
         <FlatList
           data={entries}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <EntryItem entry={item} onRemove={handleRemove} />}
+          renderItem={({ item }) => <EntryItem entry={item} onRemove={(id) => setEntryToDelete(id)} />}
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={entries.length === 0 ? styles.flatListEmpty : styles.flatListContent}
           showsVerticalScrollIndicator={false}
@@ -111,14 +106,7 @@ const HomeScreen: React.FC = () => {
       )}
 
       <TouchableOpacity
-        style={[
-          styles.fab, 
-          { 
-            backgroundColor: colors.primary, 
-            shadowColor: colors.primary,
-            bottom: insets.bottom + 20
-          }
-        ]}
+        style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.primary, bottom: insets.bottom + 20 }]}
         onPress={() => navigation.navigate('AddEntry')}
         activeOpacity={0.8}
       >
@@ -127,6 +115,39 @@ const HomeScreen: React.FC = () => {
           <Text style={styles.fabText}>Add Entry</Text>
         </View>
       </TouchableOpacity>
+
+      {/* --- MODERN DELETE MODAL --- */}
+      <Modal visible={!!entryToDelete} transparent animationType="fade" onRequestClose={() => setEntryToDelete(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            
+            <View style={[styles.modalIconCircle, { backgroundColor: mode === 'dark' ? '#4A1515' : '#FFE5E5' }]}>
+              <Ionicons name="trash" size={32} color="#D93025" />
+            </View>
+
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Delete Memory?</Text>
+            <Text style={[styles.modalMessage, { color: colors.text, opacity: 0.7 }]}>
+              Are you sure you want to delete this travel entry? This action cannot be undone.
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: colors.inputBackground }]} 
+                onPress={() => setEntryToDelete(null)}
+              >
+                <Text style={[styles.modalBtnText, { color: colors.text }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: '#D93025' }]} 
+                onPress={confirmDelete}
+              >
+                <Text style={[styles.modalBtnText, { color: '#FFF' }]}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 };

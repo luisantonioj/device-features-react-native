@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StatusBar } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, StatusBar, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -22,6 +22,8 @@ const generateId = (): string => {
   try { return uuidv4(); } catch { return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`; }
 };
 
+type ModalType = 'none' | 'cancel' | 'confirm' | 'success';
+
 const AddEntryScreen: React.FC = () => {
   const navigation = useNavigation<AddEntryNavProp>();
   const { colors, mode } = useTheme();
@@ -31,10 +33,15 @@ const AddEntryScreen: React.FC = () => {
   const [address, setAddress] = useState<string>('');
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  
   const [isFetchingLocation, setIsFetchingLocation] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+
+  // Modern Modals State
+  const [activeModal, setActiveModal] = useState<ModalType>('none');
+  const [pendingNavigation, setPendingNavigation] = useState<any>(null); // Stores the back action
 
   useFocusEffect(
     useCallback(() => { resetForm(); }, [])
@@ -43,15 +50,30 @@ const AddEntryScreen: React.FC = () => {
   const resetForm = () => {
     setImageUri(null); setAddress(''); setLatitude(null); setLongitude(null);
     setIsFetchingLocation(false); setIsSaving(false); setLocationError(null); setCameraError(null);
+    setActiveModal('none');
   };
+
+  // Intercept the back button (hardware & software) if picture is taken
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // Allow navigation if no image, or if we just successfully saved
+      if (!imageUri || activeModal === 'success') {
+        return; 
+      }
+      // Prevent default behavior
+      e.preventDefault();
+      // Save the action they tried to take and show our Cancel Modal
+      setPendingNavigation(e.data.action);
+      setActiveModal('cancel');
+    });
+    return unsubscribe;
+  }, [navigation, imageUri, activeModal]);
 
   const takePicture = async () => {
     setCameraError(null);
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow camera access.', [{ text: 'OK' }]);
-      return;
-    }
+    if (status !== 'granted') { setCameraError('Camera access denied.'); return; }
+    
     try {
       const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.85 });
       if (result.canceled) return;
@@ -59,7 +81,7 @@ const AddEntryScreen: React.FC = () => {
         setImageUri(result.assets[0].uri);
         await fetchCurrentLocation();
       }
-    } catch (error) { setCameraError('An error occurred while accessing the camera.'); }
+    } catch (error) { setCameraError('Error accessing the camera.'); }
   };
 
   const fetchCurrentLocation = async () => {
@@ -67,6 +89,7 @@ const AddEntryScreen: React.FC = () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') { setLocationError('Location permission denied.'); return; }
+      
       const locationData = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const { latitude: lat, longitude: lng } = locationData.coords;
       setLatitude(lat); setLongitude(lng);
@@ -83,36 +106,34 @@ const AddEntryScreen: React.FC = () => {
     finally { setIsFetchingLocation(false); }
   };
 
-  const handleSave = async () => {
+  const onPreSave = () => {
     if (!imageUri || !address.trim() || latitude === null || longitude === null) return;
+    setActiveModal('confirm'); // Trigger Confirmation Modal instead of saving immediately
+  };
+
+  const confirmAndSave = async () => {
     setIsSaving(true);
     try {
       const newEntry: TravelEntry = {
-        id: generateId(), imageUri, address: address.trim(), latitude, longitude, createdAt: new Date().toISOString(),
+        id: generateId(), imageUri: imageUri!, address: address.trim(), latitude: latitude!, longitude: longitude!, createdAt: new Date().toISOString(),
       };
       const success = await addEntry(newEntry);
       if (success) {
         await sendEntrySavedNotification(address.trim());
-        Alert.alert('Saved! 🎉', 'Your travel entry has been saved.', [{ text: 'OK', onPress: () => navigation.goBack() }]);
-      } else Alert.alert('Save Failed', 'Could not save your entry.');
-    } catch (error) { Alert.alert('Error', 'An unexpected error occurred while saving.'); } 
-    finally { setIsSaving(false); }
+        setActiveModal('success'); // Trigger Success Modal
+      }
+    } catch (error) {
+       // Silent fail fallback
+    } finally { 
+      setIsSaving(false); 
+    }
   };
 
   const canSave = !!imageUri && !!address && latitude !== null && longitude !== null;
 
   return (
-      <View 
-            style={[
-              styles.safeArea, 
-              { 
-                backgroundColor: colors.background,
-                paddingTop: insets.top,
-                paddingBottom: insets.bottom
-              }
-            ]}
-        >
-        <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <View style={[styles.safeArea, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -125,6 +146,7 @@ const AddEntryScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         
+        {/* Camera Section */}
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.titleRow}>
             <Ionicons name="camera-outline" size={20} color={colors.text} />
@@ -147,6 +169,7 @@ const AddEntryScreen: React.FC = () => {
           )}
         </View>
 
+        {/* Location Section */}
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.titleRow}>
             <Ionicons name="location-outline" size={20} color={colors.text} />
@@ -178,18 +201,91 @@ const AddEntryScreen: React.FC = () => {
         </View>
 
         <TouchableOpacity
-          style={[styles.saveBtn, { backgroundColor: canSave ? colors.primary : colors.border, opacity: isSaving ? 0.7 : 1 }]}
-          onPress={handleSave} disabled={isSaving || !canSave}
+          style={[styles.saveBtn, { backgroundColor: canSave ? colors.primary : colors.border }]}
+          onPress={onPreSave} disabled={!canSave}
         >
-          {isSaving ? <ActivityIndicator color="#fff" /> : (
-            <View style={styles.saveBtnRow}>
-              {canSave && <Ionicons name="checkmark-circle-outline" size={20} color="#fff" style={{ marginRight: 8 }} />}
-              <Text style={styles.saveBtnText}>{canSave ? 'Save Entry' : 'Complete Steps Above to Save'}</Text>
-            </View>
-          )}
+          <View style={styles.saveBtnRow}>
+            {canSave && <Ionicons name="checkmark-circle-outline" size={20} color="#fff" style={{ marginRight: 8 }} />}
+            <Text style={styles.saveBtnText}>{canSave ? 'Review & Save' : 'Complete Steps Above to Save'}</Text>
+          </View>
         </TouchableOpacity>
 
       </ScrollView>
+
+      {/* --- 1. CANCEL MODAL (Triggered on Back Press) --- */}
+      <Modal visible={activeModal === 'cancel'} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <View style={[styles.modalIconCircle, { backgroundColor: mode === 'dark' ? '#5A3A00' : '#FFF0D4' }]}>
+              <Ionicons name="warning" size={32} color="#F59E0B" />
+            </View>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Discard Memory?</Text>
+            <Text style={[styles.modalMessage, { color: colors.text, opacity: 0.7 }]}>
+              You have taken a photo. If you leave now, this entry will be permanently lost.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.inputBackground }]} onPress={() => setActiveModal('none')}>
+                <Text style={[styles.modalBtnText, { color: colors.text }]}>Keep Editing</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: '#D93025' }]} 
+                onPress={() => { setActiveModal('none'); navigation.dispatch(pendingNavigation); }}
+              >
+                <Text style={[styles.modalBtnText, { color: '#FFF' }]}>Discard</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- 2. CONFIRM MODAL (Triggered on Save Press) --- */}
+      <Modal visible={activeModal === 'confirm'} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <View style={[styles.modalIconCircle, { backgroundColor: mode === 'dark' ? '#1A364F' : '#E5F0FA' }]}>
+              <Ionicons name="document-text" size={32} color={colors.primary} />
+            </View>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Save this Entry?</Text>
+
+            {/* Collected Details */}
+            {imageUri && <Image source={{ uri: imageUri }} style={styles.confirmPreviewImage} resizeMode="cover" />}
+            <View style={[styles.confirmDetailsBox, { backgroundColor: colors.inputBackground }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <Ionicons name="location" size={16} color={colors.primary} style={{ marginRight: 6, marginTop: 2 }} />
+                <Text style={[styles.confirmAddressText, { color: colors.text, flex: 1 }]} numberOfLines={2}>{address}</Text>
+              </View>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.inputBackground }]} onPress={() => setActiveModal('none')} disabled={isSaving}>
+                <Text style={[styles.modalBtnText, { color: colors.text }]}>Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.primary }]} onPress={confirmAndSave} disabled={isSaving}>
+                {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={[styles.modalBtnText, { color: '#FFF' }]}>Confirm</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- 3. SUCCESS MODAL (Triggered after successful save) --- */}
+      <Modal visible={activeModal === 'success'} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <View style={[styles.modalIconCircle, { backgroundColor: mode === 'dark' ? '#143A14' : '#E5F6E5' }]}>
+              <Ionicons name="checkmark-circle" size={36} color="#10B981" />
+            </View>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Awesome!</Text>
+            <Text style={[styles.modalMessage, { color: colors.text, opacity: 0.7 }]}>
+              Your new travel memory has been safely saved to your diary.
+            </Text>
+            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.primary, width: '100%' }]} onPress={() => navigation.navigate('Home')}>
+              <Text style={[styles.modalBtnText, { color: '#FFF' }]}>Go to Home</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 };

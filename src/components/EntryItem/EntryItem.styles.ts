@@ -54,4 +54,5 @@ export const styles = StyleSheet.create({
     marginLeft: 22,
     fontWeight: '500',
   },
+  
 });
