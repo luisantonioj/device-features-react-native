@@ -10,31 +10,31 @@ interface ThemeContextType {
 }
 
 const lightColors: ThemeColors = {
-  background: '#F7F3EE',
+  background: '#F5F7F8',
   card: '#FFFFFF',
-  text: '#1A1A2E',
-  subText: '#6B6B7B',
-  border: '#E2DDD8',
-  primary: '#4A7C59',
-  danger: '#D94F4F',
+  text: '#2C3E50',
+  subText: '#7F8C8D',
+  border: '#E1E8ED',
+  primary: '#3B719F',
+  danger: '#E74C3C',
   buttonText: '#FFFFFF',
-  inputBackground: '#FFFFFF',
-  placeholder: '#A0A0B0',
-  shadow: '#00000020',
+  inputBackground: '#F0F3F5',
+  placeholder: '#95A5A6',
+  shadow: '#000000',
 };
 
 const darkColors: ThemeColors = {
-  background: '#0F0F1A',
-  card: '#1C1C2E',
-  text: '#F0EBE3',
-  subText: '#9999AA',
-  border: '#2E2E42',
-  primary: '#5FAD72',
-  danger: '#E05C5C',
+  background: '#121212',
+  card: '#1E1E1E',
+  text: '#F5F7F8',
+  subText: '#AAB7B8',
+  border: '#2C3E50',
+  primary: '#5D9CEC',
+  danger: '#FF6B6B',
   buttonText: '#FFFFFF',
-  inputBackground: '#252538',
-  placeholder: '#6666778',
-  shadow: '#00000060',
+  inputBackground: '#2A2A2A',
+  placeholder: '#7F8C8D',
+  shadow: '#000000',
 };
 
 const ThemeContext = createContext<ThemeContextType>({
