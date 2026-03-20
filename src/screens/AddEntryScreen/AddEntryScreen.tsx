@@ -279,7 +279,7 @@ const AddEntryScreen: React.FC = () => {
             <Text style={[styles.modalMessage, { color: colors.text, opacity: 0.7 }]}>
               Your new travel memory has been safely saved to your diary.
             </Text>
-            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.primary, width: '100%' }]} onPress={() => navigation.navigate('Home')}>
+            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.primary, width: '100%', flex: 0 }]} onPress={() => navigation.navigate('Home')}>
               <Text style={[styles.modalBtnText, { color: '#FFF' }]}>Go to Home</Text>
             </TouchableOpacity>
           </View>
